@@ -1,0 +1,6 @@
+{
+  "name": "90-Day Study Progress Tracker",
+  "description": "Personal study progress command center, daily reflections, test analytics, streak tracking, and AI study recommendations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
