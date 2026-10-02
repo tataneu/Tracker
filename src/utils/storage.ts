@@ -1,10 +1,20 @@
 import { ChallengeConfig, DailyEntry } from '../types';
 
 const STORAGE_KEYS = {
-  CONFIG: 'study_tracker_90_config_v1',
-  ENTRIES: 'study_tracker_90_entries_v1',
-  THEME: 'study_tracker_90_theme_v1',
+  CONFIG: 'study_tracker_90_config_v3',
+  ENTRIES: 'study_tracker_90_entries_v3',
+  THEME: 'study_tracker_90_theme_v3',
 };
+
+// Purge any old v1/v2 demo data from user's browser so reset is clean
+try {
+  localStorage.removeItem('study_tracker_90_config_v1');
+  localStorage.removeItem('study_tracker_90_entries_v1');
+  localStorage.removeItem('study_tracker_90_config_v2');
+  localStorage.removeItem('study_tracker_90_entries_v2');
+} catch (e) {
+  // ignore
+}
 
 // Helper to format Date as YYYY-MM-DD in local time
 export function formatDateKey(d: Date): string {
@@ -28,13 +38,12 @@ export function daysBetween(dateStrA: string, dateStrB: string): number {
   return Math.floor((b - a) / (1000 * 60 * 60 * 24));
 }
 
-// Default Challenge Config (starts 25 days ago so user immediately sees real progress!)
+// Default Challenge Config (starts TODAY - Day 1 of 90)
 export function getDefaultConfig(): ChallengeConfig {
-  const defaultStart = new Date();
-  defaultStart.setDate(defaultStart.getDate() - 25);
+  const today = new Date();
 
   return {
-    startDate: formatDateKey(defaultStart),
+    startDate: formatDateKey(today),
     durationDays: 90,
     dailyTargetHours: 6,
     weeklyTargetHours: 42,
@@ -70,10 +79,8 @@ export function loadDailyEntries(): DailyEntry[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.ENTRIES);
     if (!raw) {
-      // Initialize with demo data so user experiences a rich dashboard immediately!
-      const demo = generateDemoEntries(loadChallengeConfig().startDate);
-      saveDailyEntries(demo);
-      return demo;
+      saveDailyEntries([]);
+      return [];
     }
     const parsed: DailyEntry[] = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
@@ -81,6 +88,39 @@ export function loadDailyEntries(): DailyEntry[] {
     console.error('Failed to load daily entries:', err);
     return [];
   }
+}
+
+export function resetToDemoData(): { config: ChallengeConfig; entries: DailyEntry[] } {
+  const defaultStart = new Date();
+  defaultStart.setDate(defaultStart.getDate() - 25);
+
+  const demoConfig: ChallengeConfig = {
+    ...getDefaultConfig(),
+    startDate: formatDateKey(defaultStart),
+  };
+  const demoEntries = generateDemoEntries(demoConfig.startDate);
+
+  saveChallengeConfig(demoConfig);
+  saveDailyEntries(demoEntries);
+
+  return { config: demoConfig, entries: demoEntries };
+}
+
+export function clearAllDataAndReset(): { config: ChallengeConfig; entries: DailyEntry[] } {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.CONFIG);
+    localStorage.removeItem(STORAGE_KEYS.ENTRIES);
+    localStorage.removeItem('study_tracker_90_config_v1');
+    localStorage.removeItem('study_tracker_90_entries_v1');
+  } catch (err) {
+    console.error('Failed to clear localStorage:', err);
+  }
+
+  const freshConfig = getDefaultConfig();
+  saveChallengeConfig(freshConfig);
+  saveDailyEntries([]);
+
+  return { config: freshConfig, entries: [] };
 }
 
 export function saveDailyEntries(entries: DailyEntry[]): void {

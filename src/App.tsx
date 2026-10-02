@@ -108,10 +108,12 @@ export default function App() {
     }
   }, [config, entries]);
 
-  // Initial AI load when component mounts or entries change
+  // AI recommendation sync: fetch when entries exist, clear when empty/reset
   useEffect(() => {
     if (entries.length > 0 && !aiRecommendation) {
       handleFetchAIRecommendation();
+    } else if (entries.length === 0) {
+      setAiRecommendation(null);
     }
   }, [entries.length]);
 

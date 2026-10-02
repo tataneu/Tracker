@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ChallengeConfig, DailyEntry } from '../types';
-import { exportDataCSV, exportDataJSON, generateDemoEntries, importDataJSON } from '../utils/storage';
+import { exportDataCSV, exportDataJSON, importDataJSON, clearAllDataAndReset, resetToDemoData } from '../utils/storage';
 import { Sliders, Download, Upload, Trash2, RefreshCw, Plus, X, Sun, Moon, Database } from 'lucide-react';
 
 interface SettingsViewProps {
@@ -81,16 +81,29 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const handleLoadDemoData = () => {
     if (confirm('Load demo dataset? This will populate 25 realistic study days to preview full charts and analytics.')) {
-      const demo = generateDemoEntries(startDate);
-      onUpdateEntries(demo);
+      const demoRes = resetToDemoData();
+      onSaveConfig(demoRes.config);
+      onUpdateEntries(demoRes.entries);
+      setStartDate(demoRes.config.startDate);
+      setDailyTargetHours(demoRes.config.dailyTargetHours.toString());
+      setWeeklyTargetHours(demoRes.config.weeklyTargetHours.toString());
+      setOverallTargetHours(demoRes.config.overallTargetHours.toString());
+      setSubjects(demoRes.config.availableSubjects);
       alert('Demo data loaded successfully!');
     }
   };
 
   const handleClearAllData = () => {
     if (confirm('WARNING: Are you sure you want to clear ALL recorded study data? This action cannot be undone unless you exported a JSON backup.')) {
-      onUpdateEntries([]);
-      alert('All study logs cleared.');
+      const reset = clearAllDataAndReset();
+      onSaveConfig(reset.config);
+      onUpdateEntries(reset.entries);
+      setStartDate(reset.config.startDate);
+      setDailyTargetHours(reset.config.dailyTargetHours.toString());
+      setWeeklyTargetHours(reset.config.weeklyTargetHours.toString());
+      setOverallTargetHours(reset.config.overallTargetHours.toString());
+      setSubjects(reset.config.availableSubjects);
+      alert('All study logs and settings cleared and reset.');
     }
   };
 

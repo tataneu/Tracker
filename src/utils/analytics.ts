@@ -107,31 +107,56 @@ export function calculateStreaks(entries: DailyEntry[]): { currentStreak: number
  * Calculates the overall 90-Day Command Center overview
  */
 export function calculateCommandOverview(config: ChallengeConfig, entries: DailyEntry[]): CommandOverview {
+  const safeEntries = Array.isArray(entries) ? entries : [];
+  const duration = config?.durationDays || 90;
+  const overallTarget = config?.overallTargetHours || 450;
+
+  // When data is reset (all entries deleted) or no entries exist, return explicit zero state
+  if (safeEntries.length === 0) {
+    return {
+      dayNumber: 1,
+      daysCompleted: 0,
+      daysRemaining: duration,
+      progressPercentage: 0,
+      totalStudyHours: 0,
+      avgStudyHoursPerDay: 0,
+      currentStreak: 0,
+      longestStreak: 0,
+      targetStudyHours: 0,
+      overallTargetHours: overallTarget,
+      targetVsActualDiff: 0,
+      todaysHours: 0,
+      yesterdaysHours: 0,
+      todayEntry: undefined,
+      yesterdayEntry: undefined,
+    };
+  }
+
   const todayStr = formatDateKey(new Date());
-  const elapsedDays = daysBetween(config.startDate, todayStr);
-  const daysCompleted = Math.max(0, Math.min(config.durationDays, elapsedDays));
-  const dayNumber = Math.min(config.durationDays, Math.max(1, daysCompleted + 1));
-  const daysRemaining = Math.max(0, config.durationDays - daysCompleted);
-  const progressPercentage = Math.round((daysCompleted / config.durationDays) * 100);
+  const elapsedDays = Math.max(0, daysBetween(config.startDate || todayStr, todayStr));
+  const daysCompleted = Math.max(0, Math.min(duration, elapsedDays));
+  const dayNumber = Math.min(duration, Math.max(1, daysCompleted + 1));
+  const daysRemaining = Math.max(0, duration - daysCompleted);
+  const progressPercentage = Math.round((daysCompleted / duration) * 100);
 
   // Total study hours
-  const totalStudyHours = entries.reduce((acc, curr) => acc + (curr.studyHours || 0), 0);
+  const totalStudyHours = safeEntries.reduce((acc, curr) => acc + (curr.studyHours || 0), 0);
 
   // Recorded days (excluding unentered days)
-  const recordedDays = entries.length;
+  const recordedDays = safeEntries.length;
   const avgStudyHoursPerDay = recordedDays > 0 ? Number((totalStudyHours / recordedDays).toFixed(1)) : 0;
 
   // Streaks
-  const { currentStreak, longestStreak } = calculateStreaks(entries);
+  const { currentStreak, longestStreak } = calculateStreaks(safeEntries);
 
   // Expected target to date
-  const expectedTargetToDate = Math.round((daysCompleted / config.durationDays) * config.overallTargetHours);
+  const expectedTargetToDate = Math.round((daysCompleted / duration) * overallTarget);
   const targetVsActualDiff = Number((totalStudyHours - expectedTargetToDate).toFixed(1));
 
   // Today & Yesterday hours
   const yesterdayStr = addDays(todayStr, -1);
-  const todayEntry = entries.find((e) => e.date === todayStr);
-  const yesterdayEntry = entries.find((e) => e.date === yesterdayStr);
+  const todayEntry = safeEntries.find((e) => e.date === todayStr);
+  const yesterdayEntry = safeEntries.find((e) => e.date === yesterdayStr);
 
   const todaysHours = todayEntry ? todayEntry.studyHours : 0;
   const yesterdaysHours = yesterdayEntry ? yesterdayEntry.studyHours : 0;
@@ -146,7 +171,7 @@ export function calculateCommandOverview(config: ChallengeConfig, entries: Daily
     currentStreak,
     longestStreak,
     targetStudyHours: expectedTargetToDate,
-    overallTargetHours: config.overallTargetHours,
+    overallTargetHours: overallTarget,
     targetVsActualDiff,
     todaysHours,
     yesterdaysHours,
